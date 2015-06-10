@@ -1,0 +1,430 @@
+apply from: 'src/generator.groovy'
+apply plugin: 'javascript-base'
+
+configurations {
+    junit
+    reports
+}
+
+repositories {
+    javaScript.googleApis()
+}
+
+dependencies {
+    junit 'junit:junit:4.12'
+    reports "jquery:jquery.min:1.11.0@js"
+    reports "flot:flot:0.8.1:min@js"
+
+    compile libraries.groovy
+    testFixturesCompile libraries.slf4j_api
+    testFixturesCompile project(':internalIntegTesting')
+    testFixturesCompile 'com.googlecode.jatl:jatl:0.2.2'
+    testFixturesCompile 'org.eclipse.jgit:org.eclipse.jgit:3.0.0.201306101825-r'
+
+    testFixturesRuntime 'com.h2database:h2:1.3.171'
+
+    testCompile libraries.jsoup
+}
+
+useTestFixtures()
+useClassycle()
+
+task reportResources(type: Copy) {
+    from configurations.reports
+    into "$generatedResourcesDir/org/gradle/reporting"
+}
+sourceSets.main.output.dir generatedResourcesDir, builtBy: reportResources
+
+task small(type: ProjectGeneratorTask, description: 'Generates a small project') {
+}
+
+task largeSrc(type: ProjectGeneratorTask, description: 'Generates a single project with lots of source files') {
+    sourceFiles = 50000
+    linesOfCodePerSourceFile = 20
+//    subProjectTemplates << 'plain-ant-compile'
+}
+
+task multi(type: ProjectGeneratorTask, description: 'Generates a multi-project build') {
+    projects = 25
+    sourceFiles = 100
+}
+
+task mixedSize(type: ProjectGeneratorTask) {
+    projects = 400
+    sourceFiles = 100
+    projects[1].sourceFiles = 20000
+}
+
+task withJUnit(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 100
+    subProjectTemplates << 'with-junit'
+}
+
+task withTestNG(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 100
+    subProjectTemplates << 'with-testng'
+}
+
+task withVerboseTestNG(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 10
+    subProjectTemplates << 'with-verbose-testng'
+}
+
+task withVerboseJUnit(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 10
+    subProjectTemplates << 'with-verbose-junit'
+}
+
+task multiGroovy(type: ProjectGeneratorTask, description: 'Generates a multi-project Groovy build') {
+    projects = 25
+    groovyProject = true
+}
+
+task multiScala(type: ProjectGeneratorTask, description: 'Generates a multi-project Scala build') {
+    projects = 25
+    scalaProject = true
+}
+
+task multiGroovyScala(type: ProjectGeneratorTask, description: 'Generates a multi-project Groovy & Scala build') {
+    projects = 25
+    groovyProject = true
+    scalaProject = true
+}
+
+task largeMulti(type: ProjectGeneratorTask, description: 'Generates a large multi-project build') {
+    projects = 800
+    sourceFiles = 100
+}
+
+task lotDependencies(type: ProjectGeneratorTask, description: 'Generates a small multi-project build with a large Dependency Graph') {
+    projects = 5
+    sourceFiles = 100
+
+    dependencyGraph {
+        size = 200
+        depth = 4
+        useSnapshotVersions = true //default is false
+    }
+}
+
+task lotProjectDependencies(type: ProjectGeneratorTask, description: 'Generates a large multi-project build with a large Dependency Graph and plenty of project dependencies') {
+    projects = 100
+    sourceFiles = 1
+    templateArgs = [resolveDependenciesTask: true, projectDependencies: true]
+
+    dependencyGraph {
+        size = 400
+        depth = 6
+    }
+}
+
+task manyProjects(type: ProjectGeneratorTask) {
+    projects = 100
+    sourceFiles = 0
+}
+
+def generators = tasks.withType(ProjectGeneratorTask) {
+    group = 'Project setup'
+    testDependencies = configurations.junit
+}
+
+task smallOldJava(type: ProjectGeneratorTask) {
+    projects = 1
+    subProjectTemplates = ['java-source', 'old-java-plugin']
+    testDependencies = files()
+}
+
+task mediumOldJava(type: ProjectGeneratorTask) {
+    projects = 25
+    subProjectTemplates = ['java-source', 'old-java-plugin']
+    testDependencies = files()
+}
+
+task bigOldJava(type: ProjectGeneratorTask) {
+    projects = 500
+    subProjectTemplates = ['java-source', 'old-java-plugin']
+    testDependencies = files()
+}
+
+task smallNewJava(type: ProjectGeneratorTask) {
+    projects = 1
+    subProjectTemplates = ['java-source', 'new-java-plugin']
+    testDependencies = files()
+}
+
+task mediumNewJava(type: ProjectGeneratorTask) {
+    projects = 25
+    subProjectTemplates = ['java-source', 'new-java-plugin']
+    testDependencies = files()
+}
+
+task bigNewJava(type: ProjectGeneratorTask) {
+    projects = 500
+    subProjectTemplates = ['java-source', 'new-java-plugin']
+    testDependencies = files()
+}
+
+task smallVariantsNewModel(type: ProjectGeneratorTask) {
+    projects = 1
+    subProjectTemplates = ['variants-new-model']
+    templateArgs = [
+            flavourCount: 1,
+            typeCount: 1
+    ]
+    testDependencies = files()
+}
+
+task mediumVariantsNewModel(type: ProjectGeneratorTask) {
+    projects = 1
+    subProjectTemplates = ['variants-new-model']
+    templateArgs = [
+            flavourCount: 5,
+            typeCount: 5
+    ]
+    testDependencies = files()
+}
+
+task bigVariantsNewModel(type: ProjectGeneratorTask) {
+    projects = 1
+    subProjectTemplates = ['variants-new-model']
+    templateArgs = [
+            flavourCount: 23,
+            typeCount: 23
+    ]
+    testDependencies = files()
+}
+
+task smallVariantsOldModel(type: ProjectGeneratorTask) {
+    projects = 1
+    subProjectTemplates = ['variants-old-model']
+    templateArgs = [
+            flavourCount: 1,
+            typeCount: 1
+    ]
+    testDependencies = files()
+}
+
+task mediumVariantsOldModel(type: ProjectGeneratorTask) {
+    projects = 1
+    subProjectTemplates = ['variants-old-model']
+    templateArgs = [
+            flavourCount: 5,
+            typeCount: 5
+    ]
+    testDependencies = files()
+}
+
+task bigVariantsOldModel(type: ProjectGeneratorTask) {
+    projects = 1
+    subProjectTemplates = ['variants-old-model']
+    templateArgs = [
+            flavourCount: 23,
+            typeCount: 23
+    ]
+    testDependencies = files()
+}
+
+task variantsNewModelMultiproject(type: ProjectGeneratorTask) {
+    projects = 10
+    subProjectTemplates = ['variants-new-model']
+    templateArgs = [
+            flavourCount: 23,
+            typeCount: 23
+    ]
+    testDependencies = files()
+}
+
+task variantsOldModelMultiproject(type: ProjectGeneratorTask) {
+    projects = 10
+    subProjectTemplates = ['variants-old-model']
+    templateArgs = [
+            flavourCount: 23,
+            typeCount: 23
+    ]
+    testDependencies = files()
+}
+
+task bigEmpty(type: ProjectGeneratorTask) {
+    projects = 10000
+    subProjectTemplates = ['empty']
+}
+
+task smallNative(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 20
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 1,
+            functionCount: 1
+    ]
+    subProjectTemplates = ['native-source', 'native-component']
+}
+
+task mediumNative(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 100
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 1,
+            functionCount: 20
+    ]
+    subProjectTemplates = ['native-source', 'native-component']
+}
+
+task bigNative(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 500
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 1,
+            functionCount: 50
+    ]
+    subProjectTemplates = ['native-source', 'native-component']
+}
+
+task smallPCHNative(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 20
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 1,
+            functionCount: 1
+    ]
+    subProjectTemplates = ['native-pch-source', 'native-pch-component']
+}
+
+task mediumPCHNative(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 200
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 1,
+            functionCount: 1
+    ]
+    subProjectTemplates = ['native-pch-source', 'native-pch-component']
+}
+
+task bigPCHNative(type: ProjectGeneratorTask) {
+    projects = 1
+    sourceFiles = 1000
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 1,
+            functionCount: 1
+    ]
+    subProjectTemplates = ['native-pch-source', 'native-pch-component']
+}
+
+task multiNative(type: ProjectGeneratorTask) {
+    projects = 10
+    sourceFiles = 20
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 10,
+            functionCount: 20
+    ]
+    subProjectTemplates = ['native-source', 'native-component']
+}
+
+task manyProjectsNative(type: ProjectGeneratorTask) {
+    projects = 500
+    sourceFiles = 1
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 3,
+            functionCount: 1
+    ]
+    subProjectTemplates = ['native-source', 'native-component']
+}
+
+task smallScenarioNative(type: ProjectGeneratorTask) {
+    projects = 1
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 1,
+            functionCount: 1
+    ]
+    subProjectTemplates = ['native-source', 'native-scenario']
+}
+
+task mediumScenarioNative(type: ProjectGeneratorTask) {
+    projects = 25
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 1,
+            functionCount: 20
+    ]
+    subProjectTemplates = ['native-source', 'native-scenario']
+}
+
+task bigScenarioNative(type: ProjectGeneratorTask) {
+    projects = 500
+    nativeProject = true
+    templateArgs = [
+            moduleCount: 1,
+            functionCount: 50
+    ]
+    subProjectTemplates = ['native-source', 'native-scenario']
+}
+
+task bigOldJavaMoreSource(type: ProjectGeneratorTask) {
+    projects = 500
+    sourceFiles = 10
+    linesOfCodePerSourceFile = 20
+    subProjectTemplates = ['java-source', 'old-java-plugin']
+    testDependencies = files()
+}
+
+task all(dependsOn: generators)
+
+task prepareSamples(dependsOn: [bigEmpty, small, multi, lotDependencies, withJUnit, withTestNG, withVerboseTestNG, withVerboseJUnit, manyProjects,
+                                smallOldJava, mediumOldJava, bigOldJava, smallNewJava, mediumNewJava, bigNewJava,
+                                smallVariantsNewModel, mediumVariantsNewModel, bigVariantsNewModel, smallVariantsOldModel, mediumVariantsOldModel, bigVariantsOldModel,
+                                variantsNewModelMultiproject, variantsOldModelMultiproject, smallNative, mediumNative, bigNative, smallPCHNative, mediumPCHNative, bigPCHNative, multiNative,
+                                smallScenarioNative, mediumScenarioNative, bigScenarioNative, manyProjectsNative,
+                                bigOldJavaMoreSource, lotProjectDependencies])
+
+task report {
+    def reportDir = new File(buildDir, "performance-tests/report")
+    inputs.files sourceSets.testFixtures.runtimeClasspath
+    outputs.dir reportDir
+
+    doLast {
+        def cl = new URLClassLoader(sourceSets.testFixtures.runtimeClasspath.collect { it.toURI().toURL()} as URL[], ClassLoader.systemClassLoader.parent)
+        def store = cl.loadClass("org.gradle.performance.results.AllResultsStore").newInstance()
+        try {
+            def generator = cl.loadClass("org.gradle.performance.results.ReportGenerator").newInstance()
+            generator.generate(store, reportDir)
+        } finally {
+            store.close()
+        }
+    }
+}
+
+task performanceTest(type: Test) {
+    dependsOn prepareSamples
+    finalizedBy report
+    maxParallelForks = 1
+    options {
+        includeCategories 'org.gradle.performance.PerformanceTest'
+    }
+}
+
+task performanceExperiments(type: Test) {
+    dependsOn prepareSamples
+    finalizedBy report
+    maxParallelForks = 1
+    options {
+        includeCategories 'org.gradle.performance.Experiment'
+    }
+}
+
+integTest {
+    options {
+        excludeCategories 'org.gradle.performance.PerformanceTest'
+    }
+}

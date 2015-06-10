@@ -1,0 +1,43 @@
+apply plugin: "groovy"
+
+configurations {
+    mvn3Input
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+dependencies {
+    compile project(":core")
+    compile project(":resources")
+    compile libraries.commons_lang
+    compile libraries.commons_io
+    compile libraries.ivy
+    compile libraries.slf4j_api
+    compile libraries.gson
+    runtime libraries.xbean //maven3 classes dependency
+    runtime libraries.bouncycastle_provider
+
+    compile libraries.maven3
+
+    testCompile libraries.groovy
+
+    integTestRuntime project(":ivy")
+    integTestRuntime project(":maven")
+    integTestRuntime project(":resourcesHttp")
+    integTestRuntime project(":resourcesS3")
+    integTestRuntime project(":resourcesSftp")
+    //this dependency is necessary to run IvySFtpResolverIntegrationTest on ibm jdk
+    //integTestRuntime "org.bouncycastle:bcprov-jdk15:1.46@jar"
+
+    testFixturesCompile project(":internalIntegTesting")
+}
+
+if (isWindows && javaVersion.java5) {
+    compileTestGroovy.options.fork(memoryMaximumSize: '512m')
+}
+
+useTestFixtures()
+useTestFixtures(project: ":messaging")

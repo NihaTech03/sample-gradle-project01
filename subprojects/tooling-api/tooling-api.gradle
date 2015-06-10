@@ -1,0 +1,91 @@
+import org.gradle.build.*
+import org.gradle.api.internal.artifacts.publish.ArchivePublishArtifact
+
+dependencies {
+    compile project(path: ':core', configuration: "publishCompileWithProjectJar")
+    compile project(':messaging')
+    compile project(':wrapper')
+    compile project(':baseServices')
+    publishCompile libraries.slf4j_api
+
+    testFixturesCompile project(':baseServicesGroovy')
+    testCompile libraries.groovy
+
+    // lots of integTest errors otherwise
+    integTestCompile project(':internalIntegTesting')
+    integTestRuntime project(':ide')
+    integTestRuntime project(':buildInit')
+    integTestRuntime project(':buildComparison')
+    integTestRuntime project(":ivy")
+    integTestRuntime project(":maven")
+    integTestRuntime project(":toolingApiBuilders")
+}
+
+useTestFixtures()
+useTestFixtures(project: ':platformPlay', sourceSet: 'integTest')
+
+integTestTasks.all {
+    dependsOn({ rootProject.getTasksByName('publishLocalArchives', true) }, ':distributions:binZip')
+
+    if (isCiServer) {
+        maxParallelForks = Math.min(2, rootProject.maxParallelForks)
+    }
+}
+
+daemonIntegTest {
+    enabled = false //tooling integ tests use daemon anyway, don't rerun
+}
+
+task jarjarJar(type: JarJarJar) {
+    appendix = "fat"
+    dependsOn jar
+    doFirst {
+        from(zipTree(jar.getArchivePath()))
+        (configurations.runtime - configurations.publishCompile).each {
+            from(zipTree(it))
+        }
+    }
+    exclude "META-INF/**"
+    exclude "*classpath.properties"
+
+    rule('org.gradle.**', '@0')
+    rule('org.slf4j.**', '@0')
+
+    rule('org.**', 'org.gradle.jarjar.@0')
+    rule('com.**', 'org.gradle.jarjar.@0')
+    rule('net.**', 'org.gradle.jarjar.@0')
+
+    keep('org.gradle.tooling.**')
+}
+
+task publishJar(type: Zip) {
+    appendix = "bundle"
+    destinationDir = jar.destinationDir
+    extension = 'jar'
+    dependsOn jar, jarjarJar
+    from zipTree(jarjarJar.getArchivePath())
+}
+
+sourceJar {
+    configurations.compile.allDependencies.withType(ProjectDependency).each {
+        from it.dependencyProject.sourceSets.main.groovy.srcDirs
+        from it.dependencyProject.sourceSets.main.java.srcDirs
+    }
+}
+
+artifacts {
+    publishCompileWithProjectJar publishJar
+    publishRuntime file: publishJar.getArchivePath(), name: archivesBaseName, type: 'jar', builtBy: publishJar
+}
+
+configurations.publishRuntime { artifacts.removeAll { it instanceof ArchivePublishArtifact && it.archiveTask in [jar, jarjarJar] } }
+
+eclipse {
+    classpath {
+        file.whenMerged { classpath ->
+            //**TODO
+            classpath.entries.removeAll { it.path.contains('src/test/groovy') }
+            classpath.entries.removeAll { it.path.contains('src/integTest/groovy') }
+        }
+    }
+}
